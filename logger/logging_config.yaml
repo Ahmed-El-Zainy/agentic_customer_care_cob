@@ -1,0 +1,19 @@
+base_log_dir: logs
+default_level: INFO
+console_output: true
+format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+modules:
+  main:
+    level: INFO
+    
+  gradio:
+    level: DEBUG
+
+  streamlit:
+    level: DEBUG
+  
+  fastapi:
+    level: DEBUG
+  
+  
