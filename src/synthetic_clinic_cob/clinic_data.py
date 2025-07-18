@@ -2,6 +2,20 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 from faker import Faker
 import pandas as pd
+import sys
+import os
+
+
+# fdt
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(os.path.dirname(SCRIPT_DIR)))
+
+
+
+from logger.custom_logger import CustomLoggerTracker
+logger_tracker = CustomLoggerTracker()
+logger = logger_tracker.get_logger("clinic_data")
+logger.info("Logger start at synthic_data (clinic_data)")
 
 
 fake = Faker()
@@ -37,6 +51,12 @@ def gen_clinic_schedule(num_clinics: int, doctors_per_clinic: int, days: int,
                         'patient_name': fake.name() if booked else None,
                         'contact_email': fake.email() if booked else None
                     })
-
+                    logger.debug(f"Generated slot for doctor {doctor_name} at {slot.strftime('%Y-%m-%d %H:%M:%S')}, booked: {booked}")
 
     return pd.DataFrame(data)
+
+if __name__=="__main__":
+    df = gen_clinic_schedule(3, 2, 3, 8,10)
+    logger.info("Generated clinic schedule DataFrame")
+    logger.info("=" * 50)
+    logger.info(f"Results: {df}")
