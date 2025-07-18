@@ -1,12 +1,3 @@
-"""
-COB Company Customer Care AI Chatbot Agent with Gemini API
-==========================================================
-
-A comprehensive chatbot implementation using Google's Gemini API with 
-Gradio web interface for customer support, appointment scheduling, and 
-intelligent escalation handling.
-"""
-
 import json
 import re
 import datetime
@@ -31,6 +22,7 @@ class IntentType(Enum):
     GREETING = "greeting"
     GOODBYE = "goodbye"
     CONFIRMATION = "confirmation"
+
 
 class ActionType(Enum):
     SCHEDULE_APPOINTMENT = "schedule_appointment"
