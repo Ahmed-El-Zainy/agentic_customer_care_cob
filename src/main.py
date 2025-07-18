@@ -9,11 +9,17 @@ from enum import Enum
 import gradio as gr
 import google.generativeai as genai
 from datetime import datetime, timedelta
-import logging
+import sys
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# fmt: off
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(SCRIPT_DIR))
+from logger.custom_logger import CustomLoggerTracker
+
+
+
+logger_tracker = CustomLoggerTracker()
+logger = logger_tracker.get_logger("main")
 
 class IntentType(Enum):
     KNOWLEDGE_BASE_QUERY = "kb_query"
