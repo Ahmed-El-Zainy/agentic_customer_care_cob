@@ -624,9 +624,9 @@ def create_gradio_interface(api_key: str):
                 
                 gr.Markdown("### 📞 Direct Contact")
                 gr.Markdown("""
-                **Phone:** 1-800-COB-HELP  
+                **Phone:** (929)-229-7209
                 **Email:** support@cobcompany.com  
-                **Hours:** Mon-Fri 9AM-6PM EST
+                **Hours:** Mon-Fri 4PM-1AM US
                 """)
         
         # Event handlers
