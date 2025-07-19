@@ -10,16 +10,18 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(os.path.dirname(SCRIPT_DIR)))
 
 # # Try to import custom logger, fall back to standard logging if not available
-# try:
-#     from logger.custom_logger import CustomLoggerTracker
-#     logger_tracker = CustomLoggerTracker()
-#     logger = logger_tracker.get_logger("clinic_data")
-#     logger.info("Logger start at synthetic_data (COB Company Data)")
-# except ImportError:
-#     import logging
-#     logging.basicConfig(level=logging.INFO)
-#     logger = logging.getLogger("clinic_data")
-#     logger.info("Using standard logger - custom logger not available")
+try:
+    from logger.custom_logger import CustomLoggerTracker
+    logger_tracker = CustomLoggerTracker()
+    logger = logger_tracker.get_logger("clinic_data")
+    logger.info("Logger start at synthetic_data (COB Company Data)")
+
+    # Except if fail to import custom logger we can add the basic logger
+except ImportError:
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger("clinic_data")
+    logger.info("Using standard logger - custom logger not available")
 
 fake = Faker()
 
