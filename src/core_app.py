@@ -1,6 +1,3 @@
-
-
-# app/main.py
 from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -9,6 +6,26 @@ import logging
 import uvicorn
 from typing import List
 import json
+import os 
+import sys
+
+
+# Add the parent directories to the path for custom logger import
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(SCRIPT_DIR))
+try:
+    from logger.custom_logger import CustomLoggerTracker
+    logger_tracker = CustomLoggerTracker()
+    logger = logger_tracker.get_logger("code app")
+    logger.info("Logger start at gemini service ")
+except ImportError:
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger("core app")
+    logger.info("Using standard logger - custom logger not available")
+
+
+
 
 from src.core.config import settings
 from src.core.database import engine, SessionLocal
@@ -18,12 +35,9 @@ from src.services.intent_service import IntentService
 from src.services.knowledge_service import KnowledgeService
 from src.services.conversation_service import ConversationService
 from src.api.chat import chat_router
-from src.api.admin import admin_router
 from src.core.websocket_manager import ConnectionManager
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -62,7 +76,6 @@ security = HTTPBearer()
 
 # Include routers
 app.include_router(chat_router, prefix="/api/v1/chat", tags=["chat"])
-app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
 
 @app.get("/")
 async def root():

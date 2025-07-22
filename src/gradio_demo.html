@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COB Company - AI Customer Support</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* Header */
+        .header {
+            position: relative;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1rem 2rem;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(45deg, #4F46E5, #7C3AED);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.5rem;
+            animation: pulse 2s infinite;
+            box-shadow: 0 8px 32px rgba(79, 70, 229, 0.3);
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 8px 32px rgba(79, 70, 229, 0.3);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 12px 40px rgba(79, 70, 229, 0.4);
+            }
+        }
+
+        .company-info h1 {
+            color: white;
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.2rem;
+        }
+
+        .company-info p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(34, 197, 94, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #22C55E;
+            border-radius: 50%;
+            animation: blink 2s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+
+        .status-text {
+            color: #22C55E;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        /* Main container */
+        .main-container {
+            position: relative;
+            z-index: 10;
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 2rem;
+            min-height: calc(100vh - 140px);
+        }
+
+        /* Chat container */
+        .chat-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chat-header h2 {
+            color: white;
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .chat-header p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .robot-icon {
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-3px);
+            }
+            60% {
+                transform: translateY(-2px);
+            }
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            max-height: 500px;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 1rem;
+            animation: fadeInUp 0.3s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: linear-gradient(45deg, #FF6B6B, #FF8E88);
+            order: 2;
+        }
+
+        .message.bot .message-avatar {
+            background: linear-gradient(45deg, #4F46E5, #7C3AED);
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 1rem 1.5rem;
+            border-radius: 20px;
+            color: white;
+            line-height: 1.5;
+            font-size: 0.9rem;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(45deg, #FF6B6B, #FF8E88);
+            border-bottom-right-radius: 8px;
+        }
+
+        .message.bot .message-content {
+            background: linear-gradient(45deg, #4F46E5, #7C3AED);
+            border-bottom-left-radius: 8px;
+        }
+
+        .chat-input {
+            padding: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .input-container {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-end;
+        }
+
+        .input-field {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 1rem;
+            color: white;
+            font-size: 0.9rem;
+            resize: vertical;
+            min-height: 50px;
+            max-height: 120px;
+            font-family: inherit;
+        }
+
+        .input-field::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #4F46E5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+
+        .send-button {
+            background: linear-gradient(45deg, #4F46E5, #7C3AED);
+            border: none;
+            border-radius: 12px;
+            padding: 1rem;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .send-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .sidebar-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1.5rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar-card h3 {
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .quick-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .quick-action-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 1rem;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .quick-action-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .contact-info {
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .contact-info div {
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.8rem;
+            padding: 1rem 0;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 0.2rem;
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: scale(1);
+                opacity: 0.5;
+            }
+            30% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+                padding: 0 1rem;
+            }
+
+            .header {
+                padding: 1rem;
+            }
+
+            .nav-container {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .company-info h1 {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Loading animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 2px solid white;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated background particles -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="nav-container">
+            <div class="logo-section">
+                <div class="logo">COB</div>
+                <div class="company-info">
+                    <h1>COB Company</h1>
+                    <p>Advanced Healthcare Technology Solutions</p>
+                </div>
+            </div>
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <span class="status-text">AI Assistant Online</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main container -->
+    <div class="main-container">
+        <!-- Chat container -->
+        <div class="chat-container">
+            <div class="chat-header">
+                <h2>
+                    <span class="robot-icon">🤖</span>
+                    AI Customer Support
+                </h2>
+                <p>Welcome! I'm here to help with product information, appointment scheduling, technical support, and connecting you with our team.</p>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot">
+                    <div class="message-avatar">🤖</div>
+                    <div class="message-content">
+                        Hello! Welcome to COB Company Customer Support. I can help you with:
+                        <br><br>
+                        📋 Product & Service Information<br>
+                        📅 Appointment Scheduling<br>
+                        🔧 Technical Support<br>
+                        📞 Contact Information<br>
+                        👥 Human Agent Transfer<br>
+                        <br>
+                        How can I assist you today?
+                    </div>
+                </div>
+            </div>
+
+            <div class="typing-indicator" id="typingIndicator">
+                <span>AI is typing</span>
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            </div>
+            
+            <div class="chat-input">
+                <div class="input-container">
+                    <textarea 
+                        class="input-field" 
+                        id="messageInput" 
+                        placeholder="Type your message here..." 
+                        rows="1"
+                    ></textarea>
+                    <button class="send-button" id="sendButton" onclick="sendMessage()">
+                        ➤
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Quick Actions -->
+            <div class="sidebar-card">
+                <h3>⚡ Quick Actions</h3>
+                <div class="quick-actions">
+                    <button class="quick-action-btn" onclick="quickAction('I would like to schedule a product demo')">
+                        📋 Product Demo
+                    </button>
+                    <button class="quick-action-btn" onclick="quickAction('I need technical consultation')">
+                        🔧 Technical Consultation  
+                    </button>
+                    <button class="quick-action-btn" onclick="quickAction('What are your business hours?')">
+                        🕐 Business Hours
+                    </button>
+                    <button class="quick-action-btn" onclick="quickAction('How can I contact support?')">
+                        📞 Contact Info
+                    </button>
+                    <button class="quick-action-btn" onclick="quickAction('I need to speak with a human agent')">
+                        👥 Human Agent
+                    </button>
+                </div>
+            </div>
+
+            <!-- Contact Information -->
+            <div class="sidebar-card">
+                <h3>📞 Direct Contact</h3>
+                <div class="contact-info">
+                    <div>📱 <strong>Phone:</strong> (929) 229-7209</div>
+                    <div>✉️ <strong>Email:</strong> support@cobcompany.com</div>
+                    <div>🕒 <strong>Hours:</strong> Mon-Fri 4PM-1AM US</div>
+                    <div>🌐 <strong>Support:</strong> 24/7 Emergency Available</div>
+                </div>
+            </div>
+
+            <!-- Services -->
+            <div class="sidebar-card">
+                <h3>🏥 Our Services</h3>
+                <div class="contact-info">
+                    <div>✅ Medical Authorizations</div>
+                    <div>🔍 Benefits Verification</div>
+                    <div>📊 Medical Auditing</div>
+                    <div>💼 Billing & Denial Management</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Session management
+        let sessionId = generateSessionId();
+        let messageHistory = [];
+
+        // Generate particles
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 50;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        // Generate unique session ID
+        function generateSessionId() {
+            return 'session_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // Auto-resize textarea
+        const messageInput = document.getElementById('messageInput');
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+
+        // Send message on Enter (but not Shift+Enter)
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Quick action function
+        function quickAction(message) {
+            messageInput.value = message;
+            sendMessage();
+        }
+
+        // Send message function
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // Clear input and disable button
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+            const sendButton = document.getElementById('sendButton');
+            sendButton.innerHTML = '<div class="loading"></div>';
+            sendButton.disabled = true;
+
+            // Add user message to chat
+            addMessage(message, 'user');
+
+            // Show typing indicator
+            showTypingIndicator();
+
+            try {
+                // Simulate API call (replace with actual API endpoint)
+                const response = await simulateAPICall(message);
+                
+                // Hide typing indicator
+                hideTypingIndicator();
+
+                // Add bot response
+                setTimeout(() => {
+                    addMessage(response, 'bot');
+                }, 500);
+
+            } catch (error) {
+                console.error('Error:', error);
+                hideTypingIndicator();
+                addMessage('I apologize, but I\'m experiencing technical difficulties. Please try again or contact our support team directly at support@cobcompany.com', 'bot');
+            } finally {
+                // Re-enable send button
+                sendButton.innerHTML = '➤';
+                sendButton.disabled = false;
+            }
+        }
+
+        // Simulate API call (replace with actual implementation)
+        async function simulateAPICall(message) {
+            // Simulate network delay
+            await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
+
+            // Simple response logic (replace with actual AI integration)
+            const responses = {
+                'demo': 'I\'d be happy to help you schedule a product demo! Let me collect some information from you. What\'s your name and the best email to reach you?',
+                'hours': 'Our business hours are:\n\n📅 **Business Hours:** Monday-Friday 9:00 AM - 6:00 PM EST\n📞 **Support:** 24/7 emergency support available\n💼 **Sales:** Monday-Friday 8:00 AM - 7:00 PM EST\n\nIs there a specific department you\'d like to reach?',
+                'contact': 'Here are the best ways to contact us:\n\n📞 **Phone:** (929) 229-7209\n✉️ **Email:** support@cobcompany.com\n🏢 **Address:** 123 Technology Boulevard, Innovation City\n💬 **Live Chat:** Available 24/7 on our website\n\nWhat type of assistance do you need?',
+                'human': 'I understand you\'d like to speak with one of our human agents. I\'m connecting you now with our support team. You can also reach them directly at:\n\n📞 (929) 229-7209\n✉️ support@cobcompany.com\n\nThey\'ll be able to provide more specialized assistance. Is this regarding a specific product or service?',
+                'technical': 'I can help you with technical consultation! We offer 45-minute sessions where our experts discuss:\n\n🔧 Implementation strategies\n🔗 System integration\n⚙️ Technical requirements\n📊 Performance optimization\n\nWould you like me to schedule a consultation for you?'
+            };
+
+            // Simple keyword matching
+            const lowerMessage = message.toLowerCase();
+            for (const [key, response] of Object.entries(responses)) {
+                if (lowerMessage.includes(key)) {
+                    return response;
+                }
+            }
+
+            // Default responses based on keywords
+            if (lowerMessage.includes('appointment') || lowerMessage.includes('schedule') || lowerMessage.includes('book')) {
+                return 'I can help you schedule an appointment! We offer several types:\n\n📋 **Product Demo** (30 min) - Live demonstration\n🔧 **Technical Consultation** (45 min) - Implementation discussion\n💼 **Sales Meeting** (60 min) - Pricing and requirements\n🛠️ **Support Session** (30 min) - Technical support\n\nWhich type interests you most?';
+            }
+
+            if (lowerMessage.includes('product') || lowerMessage.includes('service')) {
+                return 'COB Company offers comprehensive healthcare technology solutions:\n\n✅ **Medical Authorizations** - Streamline insurance approvals\n🔍 **Benefits Verification** - Accurate coverage confirmation\n📊 **Medical Auditing** - Compliance and optimization\n💼 **Billing & Denial Management** - Revenue cycle support\n\nWhich service would you like to learn more about?';
+            }
+
+            if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
+                return 'Hello! Welcome to COB Company Customer Support. I\'m here to help you with our healthcare technology solutions. What can I assist you with today?';
+            }
+
+            // Default response
+            return 'Thank you for your message! I want to make sure I provide you with the most helpful information. Could you please tell me more about what you\'re looking for? I can help with:\n\n📋 Product information\n📅 Appointment scheduling\n🔧 Technical support\n📞 Contact information\n👥 Connecting with our team';
+        }
+
+        // Add message to chat
+        function addMessage(text, sender) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = sender === 'user' ? '👤' : '🤖';
+
+            const content = document.createElement('div');
+            content.className = 'message-content';
+            
+            // Convert markdown-style formatting to HTML
+            const formattedText = text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>');
+            
+            content.innerHTML = formattedText;
+
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(content);
+            messagesContainer.appendChild(messageDiv);
+
+            // Scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            // Store in history
+            messageHistory.push({
+                text: text,
+                sender: sender,
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        // Show typing indicator
+        function showTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            indicator.style.display = 'flex';
+            
+            const messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Hide typing indicator
+        function hideTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            indicator.style.display = 'none';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            createParticles();
+            messageInput.focus();
+        });
+
+        // Add some dynamic behavior
+        setInterval(() => {
+            const logo = document.querySelector('.logo');
+            if (logo) {
+                logo.style.transform = `scale(${1 + Math.sin(Date.now() * 0.001) * 0.02})`;
+            }
+        }, 50);
+    </script>
+</body>
+</html>
