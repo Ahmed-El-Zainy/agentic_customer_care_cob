@@ -145,7 +145,7 @@ print_success "Gradio interface started (PID: $GRADIO_PID)"
 
 # Test the integration
 print_status "Running integration tests..."
-python tests/integration_test.py || {
+python src/tests/integration_test.py || {
     print_warning "Integration tests failed, but services are running"
 }
 

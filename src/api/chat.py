@@ -10,20 +10,25 @@ from datetime import datetime, timedelta
 import jwt
 import uuid
 import sys
-import os
-from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
-from typing import Optional
+import logging
+from pathlib import Path
 
-# Define the router
-chat_router = APIRouter()
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Add the parent directories to the path for custom logger import
+# Add the parent directories to the path for imports
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.dirname(os.path.dirname(SCRIPT_DIR)))
-from src.main import GeminiChatbot
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+sys.path.append(PROJECT_ROOT)
 
-
+# Import the chatbot - with error handling
+try:
+    from main import GeminiChatbot
+    logger.info("Successfully imported GeminiChatbot")
+except ImportError as e:
+    logger.error(f"Failed to import GeminiChatbot: {e}")
+    GeminiChatbot = None
 
 # Initialize FastAPI app
 app = FastAPI(title="COB Company API", version="1.0.0")
@@ -42,9 +47,19 @@ security = HTTPBearer()
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-here")
 ALGORITHM = "HS256"
 
-# Initialize chatbot
+# Initialize chatbot with better error handling
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-chatbot = GeminiChatbot(GEMINI_API_KEY) if GEMINI_API_KEY else None
+chatbot = None
+
+if GEMINI_API_KEY and GeminiChatbot:
+    try:
+        chatbot = GeminiChatbot(GEMINI_API_KEY)
+        logger.info("Chatbot initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize chatbot: {e}")
+        chatbot = None
+else:
+    logger.warning("Chatbot not initialized - missing API key or import failed")
 
 # Pydantic Models
 class ChatMessage(BaseModel):
@@ -86,13 +101,33 @@ class DashboardStats(BaseModel):
     top_intents: List[Dict[str, Any]]
 
 # Database helper functions
-def get_db_connection(db_path: str):
-    """Get database connection"""
+def get_db_connection():
+    """Get database connection with better path handling"""
     try:
+        # Try multiple possible database paths
+        possible_paths = [
+            "cob_system_2.db",
+            "assets/data/cob_system_2.db",
+            os.path.join(PROJECT_ROOT, "cob_system_2.db"),
+            os.path.join(PROJECT_ROOT, "assets", "data", "cob_system_2.db")
+        ]
+        
+        db_path = None
+        for path in possible_paths:
+            if os.path.exists(path):
+                db_path = path
+                break
+        
+        if not db_path:
+            # Create database in current directory
+            db_path = "cob_system_2.db"
+            logger.info(f"Creating new database at: {db_path}")
+        
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
         return conn
     except Exception as e:
+        logger.error(f"Database connection failed: {e}")
         raise HTTPException(status_code=500, detail=f"Database connection failed: {str(e)}")
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -130,8 +165,17 @@ def verify_admin_token(credentials: HTTPAuthorizationCredentials = Depends(secur
 async def chat_endpoint(message: ChatMessage):
     """Main chat endpoint for processing user messages"""
     try:
+        logger.info(f"Received chat message: {message.message[:50]}...")
+        
         if not chatbot:
-            raise HTTPException(status_code=500, detail="Chatbot not initialized")
+            logger.error("Chatbot not initialized")
+            # Provide fallback response when chatbot is not available
+            return ChatResponse(
+                response="I'm currently experiencing technical difficulties. Please try again later or contact our support team at (929) 229-7209 or support@cobcompany.com for immediate assistance.",
+                session_id=message.session_id or str(uuid.uuid4())[:8],
+                intent="system_error",
+                timestamp=datetime.now()
+            )
         
         # Generate session ID if not provided
         session_id = message.session_id or str(uuid.uuid4())[:8]
@@ -146,6 +190,8 @@ async def chat_endpoint(message: ChatMessage):
         # Log conversation to database
         await log_conversation(session_id, message.message, response, intent)
         
+        logger.info(f"Processed message successfully for session: {session_id}")
+        
         return ChatResponse(
             response=response,
             session_id=session_id,
@@ -154,14 +200,21 @@ async def chat_endpoint(message: ChatMessage):
         )
     
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Chat processing failed: {str(e)}")
+        logger.error(f"Chat processing failed: {e}", exc_info=True)
+        # Return a user-friendly error message instead of raising HTTP exception
+        return ChatResponse(
+            response="I apologize, but I'm experiencing technical difficulties right now. Please try again in a moment, or contact our support team directly at (929) 229-7209 for immediate assistance.",
+            session_id=message.session_id or str(uuid.uuid4())[:8],
+            intent="error",
+            timestamp=datetime.now()
+        )
 
 @app.get("/api/chat/sessions")
 async def get_active_sessions():
     """Get all active chat sessions"""
     try:
         if not chatbot:
-            raise HTTPException(status_code=500, detail="Chatbot not initialized")
+            return {"active_sessions": [], "message": "Chatbot not available"}
         
         sessions = []
         for session_id, context in chatbot.user_sessions.items():
@@ -176,6 +229,7 @@ async def get_active_sessions():
         return {"active_sessions": sessions}
     
     except Exception as e:
+        logger.error(f"Failed to get sessions: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get sessions: {str(e)}")
 
 @app.post("/api/appointments")
@@ -185,7 +239,7 @@ async def book_appointment(appointment: AppointmentRequest, background_tasks: Ba
         appointment_id = str(uuid.uuid4())[:8].upper()
         
         # Store appointment in database
-        conn = get_db_connection("cob_system_2.db")
+        conn = get_db_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -226,13 +280,14 @@ async def book_appointment(appointment: AppointmentRequest, background_tasks: Ba
         )
     
     except Exception as e:
+        logger.error(f"Failed to book appointment: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to book appointment: {str(e)}")
 
 @app.get("/api/appointments")
 async def get_appointments(admin: str = Depends(verify_admin_token)):
     """Get all appointments (admin only)"""
     try:
-        conn = get_db_connection("cob_system_2.db")
+        conn = get_db_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -246,6 +301,7 @@ async def get_appointments(admin: str = Depends(verify_admin_token)):
         return {"appointments": appointments}
     
     except Exception as e:
+        logger.error(f"Failed to get appointments: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get appointments: {str(e)}")
 
 # Admin API Endpoints
@@ -269,12 +325,13 @@ async def admin_login(credentials: AdminLogin):
 async def get_dashboard_stats(admin: str = Depends(verify_admin_token)):
     """Get dashboard statistics (admin only)"""
     try:
-        conn = get_db_connection("cob_system_2.db")
+        conn = get_db_connection()
         cursor = conn.cursor()
         
         # Get total conversations
         cursor.execute("SELECT COUNT(*) as count FROM conversation_logs")
-        total_conversations = cursor.fetchone()["count"] if cursor.fetchone() else 0
+        result = cursor.fetchone()
+        total_conversations = result["count"] if result else 0
         
         # Get active sessions
         active_sessions = len(chatbot.user_sessions) if chatbot else 0
@@ -285,7 +342,8 @@ async def get_dashboard_stats(admin: str = Depends(verify_admin_token)):
             SELECT COUNT(*) as count FROM appointments_booked 
             WHERE DATE(created_at) = ?
         """, (today,))
-        appointments_today = cursor.fetchone()["count"] if cursor.fetchone() else 0
+        result = cursor.fetchone()
+        appointments_today = result["count"] if result else 0
         
         # Get top intents
         cursor.execute("""
@@ -307,13 +365,14 @@ async def get_dashboard_stats(admin: str = Depends(verify_admin_token)):
         )
     
     except Exception as e:
+        logger.error(f"Failed to get dashboard stats: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get dashboard stats: {str(e)}")
 
 @app.get("/api/admin/conversations")
 async def get_conversations(admin: str = Depends(verify_admin_token), limit: int = 100):
     """Get conversation logs (admin only)"""
     try:
-        conn = get_db_connection("cob_system_2.db")
+        conn = get_db_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -328,6 +387,7 @@ async def get_conversations(admin: str = Depends(verify_admin_token), limit: int
         return {"conversations": conversations}
     
     except Exception as e:
+        logger.error(f"Failed to get conversations: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get conversations: {str(e)}")
 
 @app.delete("/api/admin/sessions/{session_id}")
@@ -341,13 +401,14 @@ async def clear_session(session_id: str, admin: str = Depends(verify_admin_token
             raise HTTPException(status_code=404, detail="Session not found")
     
     except Exception as e:
+        logger.error(f"Failed to clear session: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to clear session: {str(e)}")
 
 # Utility Functions
 async def log_conversation(session_id: str, user_message: str, bot_response: str, intent: str = None):
     """Log conversation to database"""
     try:
-        conn = get_db_connection("cob_system_2.db")
+        conn = get_db_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -370,12 +431,12 @@ async def log_conversation(session_id: str, user_message: str, bot_response: str
         conn.close()
     
     except Exception as e:
-        print(f"Failed to log conversation: {str(e)}")
+        logger.error(f"Failed to log conversation: {e}")
 
 async def send_appointment_confirmation(email: str, appointment_id: str):
     """Background task to send appointment confirmation email"""
     # Placeholder for email sending logic
-    print(f"Sending confirmation email to {email} for appointment {appointment_id}")
+    logger.info(f"Sending confirmation email to {email} for appointment {appointment_id}")
 
 # Health check endpoint
 @app.get("/api/health")
@@ -384,7 +445,8 @@ async def health_check():
     return {
         "status": "healthy",
         "timestamp": datetime.now(),
-        "chatbot_initialized": chatbot is not None
+        "chatbot_initialized": chatbot is not None,
+        "gemini_api_key_set": bool(GEMINI_API_KEY)
     }
 
 # Root endpoint
@@ -394,52 +456,27 @@ async def root():
     return {
         "message": "COB Company Customer Support API",
         "version": "1.0.0",
+        "status": "running",
+        "chatbot_status": "initialized" if chatbot else "not_initialized",
         "endpoints": {
             "chat": "/api/chat",
             "appointments": "/api/appointments",
             "admin": "/api/admin/login",
-            "health": "/api/health"
+            "health": "/api/health",
+            "docs": "/docs"
         }
     }
 
-
-
-# Request and response models
-class ChatRequest(BaseModel):
-    session_id: str
-    message: str
-    memory_mode: Optional[str] = "basic"  # e.g. "basic", "summary", "trimmed"
-
-class ChatResponse(BaseModel):
-    reply: str
-    memory_summary: Optional[str] = None
-
-
-# Example in-memory conversation history
-conversation_store = {}
-
-
-@chat_router.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(request: ChatRequest):
-    session_id = request.session_id
-    message = request.message
-    memory_mode = request.memory_mode
-
-    # Simulate a response (replace with actual model call)
-    response = f"You said: {message}"
-
-    # Save to memory (simple version)
-    if session_id not in conversation_store:
-        conversation_store[session_id] = []
-
-    conversation_store[session_id].append({"user": message, "bot": response})
-
-    # Optional memory summary (dummy)
-    summary = None
-    if memory_mode == "summary":
-        summary = "This is a memory summary of the conversation."
-
-    return ChatResponse(reply=response, memory_summary=summary)
 if __name__ == "__main__":
     import uvicorn
+    
+    # Print startup information
+    print("🚀 Starting COB Company API Server")
+    print("=" * 40)
+    print(f"🔑 Gemini API Key: {'✅ Set' if GEMINI_API_KEY else '❌ Not Set'}")
+    print(f"🤖 Chatbot Status: {'✅ Ready' if chatbot else '❌ Not Ready'}")
+    print("📡 Server will start on: http://0.0.0.0:8000")
+    print("📚 API Documentation: http://localhost:8000/docs")
+    print("=" * 40)
+    
     uvicorn.run(app, host="0.0.0.0", port=8000)

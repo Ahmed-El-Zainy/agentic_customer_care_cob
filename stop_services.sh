@@ -1,4 +1,3 @@
-#!/bin/bash
 
 # COB Company Chatbot System Shutdown Script
 
