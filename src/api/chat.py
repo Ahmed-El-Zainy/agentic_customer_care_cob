@@ -11,8 +11,12 @@ import jwt
 import uuid
 import sys
 import os
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
+from typing import Optional
 
-
+# Define the router
+chat_router = APIRouter()
 
 # Add the parent directories to the path for custom logger import
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -398,6 +402,44 @@ async def root():
         }
     }
 
+
+
+# Request and response models
+class ChatRequest(BaseModel):
+    session_id: str
+    message: str
+    memory_mode: Optional[str] = "basic"  # e.g. "basic", "summary", "trimmed"
+
+class ChatResponse(BaseModel):
+    reply: str
+    memory_summary: Optional[str] = None
+
+
+# Example in-memory conversation history
+conversation_store = {}
+
+
+@chat_router.post("/chat", response_model=ChatResponse)
+async def chat_endpoint(request: ChatRequest):
+    session_id = request.session_id
+    message = request.message
+    memory_mode = request.memory_mode
+
+    # Simulate a response (replace with actual model call)
+    response = f"You said: {message}"
+
+    # Save to memory (simple version)
+    if session_id not in conversation_store:
+        conversation_store[session_id] = []
+
+    conversation_store[session_id].append({"user": message, "bot": response})
+
+    # Optional memory summary (dummy)
+    summary = None
+    if memory_mode == "summary":
+        summary = "This is a memory summary of the conversation."
+
+    return ChatResponse(reply=response, memory_summary=summary)
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
