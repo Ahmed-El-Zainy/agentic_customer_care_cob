@@ -443,6 +443,41 @@
             }
         }
 
+        /* Error message styles */
+        .error-message {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fecaca;
+            padding: 1rem;
+            border-radius: 12px;
+            margin: 1rem 0;
+            display: none;
+        }
+
+        /* Connection status */
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .connection-status.connected {
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #22C55E;
+        }
+
+        .connection-status.disconnected {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+
         /* Responsive design */
         @media (max-width: 768px) {
             .main-container {
@@ -484,6 +519,11 @@
     </style>
 </head>
 <body>
+    <!-- Connection Status -->
+    <div class="connection-status disconnected" id="connectionStatus">
+        🔴 Connecting...
+    </div>
+
     <!-- Animated background particles -->
     <div class="particles" id="particles"></div>
 
@@ -499,7 +539,7 @@
             </div>
             <div class="status-indicator">
                 <div class="status-dot"></div>
-                <span class="status-text">AI Assistant Online</span>
+                <span class="status-text" id="statusText">AI Assistant Online</span>
             </div>
         </div>
     </header>
@@ -514,6 +554,10 @@
                     AI Customer Support
                 </h2>
                 <p>Welcome! I'm here to help with product information, appointment scheduling, technical support, and connecting you with our team.</p>
+            </div>
+            
+            <div class="error-message" id="errorMessage">
+                <strong>Connection Error:</strong> <span id="errorText"></span>
             </div>
             
             <div class="chat-messages" id="chatMessages">
@@ -602,13 +646,28 @@
                     <div>💼 Billing & Denial Management</div>
                 </div>
             </div>
+
+            <!-- Session Info -->
+            <div class="sidebar-card">
+                <h3>📊 Session Info</h3>
+                <div class="contact-info">
+                    <div>🆔 <strong>Session:</strong> <span id="sessionId">Connecting...</span></div>
+                    <div>💬 <strong>Messages:</strong> <span id="messageCount">0</span></div>
+                    <div>🎯 <strong>Intent:</strong> <span id="currentIntent">None</span></div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
+        // Configuration
+        const API_BASE_URL = 'http://localhost:8000';
+        
         // Session management
         let sessionId = generateSessionId();
         let messageHistory = [];
+        let messageCount = 0;
+        let isConnected = false;
 
         // Generate particles
         function createParticles() {
@@ -628,6 +687,73 @@
         // Generate unique session ID
         function generateSessionId() {
             return 'session_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // Update connection status
+        function updateConnectionStatus(connected) {
+            const statusElement = document.getElementById('connectionStatus');
+            const statusText = document.getElementById('statusText');
+            
+            isConnected = connected;
+            
+            if (connected) {
+                statusElement.className = 'connection-status connected';
+                statusElement.textContent = '🟢 Connected';
+                statusText.textContent = 'AI Assistant Online';
+            } else {
+                statusElement.className = 'connection-status disconnected';
+                statusElement.textContent = '🔴 Disconnected';
+                statusText.textContent = 'Connection Issues';
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorElement = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            
+            errorText.textContent = message;
+            errorElement.style.display = 'block';
+            
+            setTimeout(() => {
+                errorElement.style.display = 'none';
+            }, 5000);
+        }
+
+        // Update session info
+        function updateSessionInfo(sessionId, intent = null) {
+            document.getElementById('sessionId').textContent = sessionId;
+            document.getElementById('messageCount').textContent = messageCount;
+            if (intent) {
+                document.getElementById('currentIntent').textContent = intent;
+            }
+        }
+
+        // Test API connection
+        async function testConnection() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/health`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    timeout: 5000
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    updateConnectionStatus(true);
+                    console.log('API connection successful:', data);
+                    return true;
+                } else {
+                    throw new Error(`API returned status: ${response.status}`);
+                }
+            } catch (error) {
+                console.error('API connection failed:', error);
+                updateConnectionStatus(false);
+                showError('Cannot connect to the chat server. Please check if the API is running.');
+                return false;
+            }
         }
 
         // Auto-resize textarea
@@ -656,6 +782,15 @@
             const message = messageInput.value.trim();
             if (!message) return;
 
+            // Check connection first
+            if (!isConnected) {
+                const connected = await testConnection();
+                if (!connected) {
+                    showError('Please check your connection and try again.');
+                    return;
+                }
+            }
+
             // Clear input and disable button
             messageInput.value = '';
             messageInput.style.height = 'auto';
@@ -665,70 +800,66 @@
 
             // Add user message to chat
             addMessage(message, 'user');
+            messageCount++;
+            updateSessionInfo(sessionId);
 
             // Show typing indicator
             showTypingIndicator();
 
             try {
-                // Simulate API call (replace with actual API endpoint)
-                const response = await simulateAPICall(message);
+                // Make API call
+                const response = await fetch(`${API_BASE_URL}/api/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: sessionId
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+                }
+
+                const data = await response.json();
                 
                 // Hide typing indicator
                 hideTypingIndicator();
 
                 // Add bot response
                 setTimeout(() => {
-                    addMessage(response, 'bot');
+                    addMessage(data.response, 'bot');
+                    messageCount++;
+                    updateSessionInfo(data.session_id, data.intent);
+                    sessionId = data.session_id; // Update session ID from server
                 }, 500);
+
+                // Update connection status
+                updateConnectionStatus(true);
 
             } catch (error) {
                 console.error('Error:', error);
                 hideTypingIndicator();
-                addMessage('I apologize, but I\'m experiencing technical difficulties. Please try again or contact our support team directly at support@cobcompany.com', 'bot');
+                updateConnectionStatus(false);
+                
+                let errorMessage = 'I apologize, but I\'m experiencing technical difficulties. ';
+                
+                if (error.message.includes('Failed to fetch')) {
+                    errorMessage += 'Please check if the API server is running on port 8000.';
+                } else {
+                    errorMessage += 'Please try again or contact our support team directly at support@cobcompany.com';
+                }
+                
+                addMessage(errorMessage, 'bot');
+                showError(error.message);
+                
             } finally {
                 // Re-enable send button
                 sendButton.innerHTML = '➤';
                 sendButton.disabled = false;
             }
-        }
-
-        // Simulate API call (replace with actual implementation)
-        async function simulateAPICall(message) {
-            // Simulate network delay
-            await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
-
-            // Simple response logic (replace with actual AI integration)
-            const responses = {
-                'demo': 'I\'d be happy to help you schedule a product demo! Let me collect some information from you. What\'s your name and the best email to reach you?',
-                'hours': 'Our business hours are:\n\n📅 **Business Hours:** Monday-Friday 9:00 AM - 6:00 PM EST\n📞 **Support:** 24/7 emergency support available\n💼 **Sales:** Monday-Friday 8:00 AM - 7:00 PM EST\n\nIs there a specific department you\'d like to reach?',
-                'contact': 'Here are the best ways to contact us:\n\n📞 **Phone:** (929) 229-7209\n✉️ **Email:** support@cobcompany.com\n🏢 **Address:** 123 Technology Boulevard, Innovation City\n💬 **Live Chat:** Available 24/7 on our website\n\nWhat type of assistance do you need?',
-                'human': 'I understand you\'d like to speak with one of our human agents. I\'m connecting you now with our support team. You can also reach them directly at:\n\n📞 (929) 229-7209\n✉️ support@cobcompany.com\n\nThey\'ll be able to provide more specialized assistance. Is this regarding a specific product or service?',
-                'technical': 'I can help you with technical consultation! We offer 45-minute sessions where our experts discuss:\n\n🔧 Implementation strategies\n🔗 System integration\n⚙️ Technical requirements\n📊 Performance optimization\n\nWould you like me to schedule a consultation for you?'
-            };
-
-            // Simple keyword matching
-            const lowerMessage = message.toLowerCase();
-            for (const [key, response] of Object.entries(responses)) {
-                if (lowerMessage.includes(key)) {
-                    return response;
-                }
-            }
-
-            // Default responses based on keywords
-            if (lowerMessage.includes('appointment') || lowerMessage.includes('schedule') || lowerMessage.includes('book')) {
-                return 'I can help you schedule an appointment! We offer several types:\n\n📋 **Product Demo** (30 min) - Live demonstration\n🔧 **Technical Consultation** (45 min) - Implementation discussion\n💼 **Sales Meeting** (60 min) - Pricing and requirements\n🛠️ **Support Session** (30 min) - Technical support\n\nWhich type interests you most?';
-            }
-
-            if (lowerMessage.includes('product') || lowerMessage.includes('service')) {
-                return 'COB Company offers comprehensive healthcare technology solutions:\n\n✅ **Medical Authorizations** - Streamline insurance approvals\n🔍 **Benefits Verification** - Accurate coverage confirmation\n📊 **Medical Auditing** - Compliance and optimization\n💼 **Billing & Denial Management** - Revenue cycle support\n\nWhich service would you like to learn more about?';
-            }
-
-            if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
-                return 'Hello! Welcome to COB Company Customer Support. I\'m here to help you with our healthcare technology solutions. What can I assist you with today?';
-            }
-
-            // Default response
-            return 'Thank you for your message! I want to make sure I provide you with the most helpful information. Could you please tell me more about what you\'re looking for? I can help with:\n\n📋 Product information\n📅 Appointment scheduling\n🔧 Technical support\n📞 Contact information\n👥 Connecting with our team';
         }
 
         // Add message to chat
@@ -782,9 +913,20 @@
         }
 
         // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             createParticles();
             messageInput.focus();
+            
+            // Test initial connection
+            updateSessionInfo(sessionId);
+            await testConnection();
+            
+            // Set up periodic connection check
+            setInterval(async () => {
+                if (!isConnected) {
+                    await testConnection();
+                }
+            }, 10000); // Check every 10 seconds
         });
 
         // Add some dynamic behavior
