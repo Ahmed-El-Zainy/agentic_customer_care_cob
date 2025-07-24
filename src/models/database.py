@@ -24,13 +24,13 @@ class Message(Base):
     __tablename__ = "messages"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    message_metadata = Column(JSON)  # ✅ Safe name
     conversation_id = Column(UUID(as_uuid=True), ForeignKey("conversations.id"))
     role = Column(String(20))  # user, assistant, system
     content = Column(Text)
     intent = Column(String(100))
     confidence = Column(Float)
     entities = Column(JSON)
-    metadata = Column(JSON)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
