@@ -40,10 +40,15 @@ The COB Company Healthcare Customer Support System is an intelligent, AI-powered
 ### Demo
 <p>For watching the demo, click here: <a href="assets/demo_cob.mp4" target="_blank">Demo</a></p>
 
+https://github.com/user-attachments/assets/1eff1626-a360-4b61-a9cc-aa0125011548
 
 <video src="assets/demo_cob.mp4" controls width="100%">
   Your browser does not support the video tag.
 </video>
+
+
+
+
 
 ---
 
