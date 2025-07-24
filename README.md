@@ -1,4 +1,4 @@
-# agentic_customer_care_cob
+<!-- # agentic_customer_care_cob
 Basic Architecure Digram for the seqenece of actions and workflow for the project
 <img src="assets/architecure_diagram.png">
 
@@ -6,8 +6,7 @@ Basic Architecure Digram for the seqenece of actions and workflow for the projec
 
 ## DEMO
 <video src='assets/demo_cob.mp4'>
-
-# COB Company Healthcare Customer Support System
+ -->
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com)

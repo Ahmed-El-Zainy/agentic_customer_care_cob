@@ -69,6 +69,10 @@ instance/
 .scrapy
 .csv
 
+*.pid
+.DS_Store
+.db
+
 /assets/data
 # Sphinx documentation
 docs/_build/
