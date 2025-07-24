@@ -40,6 +40,7 @@ The COB Company Healthcare Customer Support System is an intelligent, AI-powered
 ### Demo
 <p>For watching the demo, click here: <a href="assets/demo_cob.mp4" target="_blank">Demo</a></p>
 
+
 <video src="assets/demo_cob.mp4" controls width="100%">
   Your browser does not support the video tag.
 </video>
@@ -177,7 +178,7 @@ graph TB
 
 ```bash
 # Clone the repository
-git clone https://github.com/Ahmed-El-Zainy/cob-customer-support
+git clone https://github.com/your-org/cob-customer-support.git
 cd cob-customer-support
 
 # Set up Python virtual environment
