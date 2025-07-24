@@ -633,6 +633,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 <div align="center">
-  <p><strong>Built with ❤️ for Healthcare Technology Solutions</strong></p>
+  <p><strong>Built for Healthcare Technology Solutions</strong></p>
   <p>© 2025 COB Company. All Rights Reserved.</p>
 </div>
