@@ -37,6 +37,12 @@ Basic Architecure Digram for the seqenece of actions and workflow for the projec
 
 The COB Company Healthcare Customer Support System is an intelligent, AI-powered conversational interface designed specifically for healthcare technology solutions. Built with enterprise-grade scalability and reliability in mind, this system provides seamless customer support automation while maintaining the ability to escalate to human agents when necessary.
 
+### Demo
+### Demo
+<video src="assets/demo_cob.mp4" controls width="100%">
+  Your browser does not support the video tag.
+</video>
+
 ### Key Capabilities
 
 - **Multi-Modal Interface**: Web-based HTML interface, Gradio UI, and REST API
