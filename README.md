@@ -43,8 +43,10 @@ The COB Company Healthcare Customer Support System is an intelligent, AI-powered
 <video src="assets/demo_cob.mp4" controls width="100%">
   Your browser does not support the video tag.
 </video>
-----------
-- End of the Demo
+
+---
+
+End of services in the demo here: 
 <img src="assets/end_services.png">
 ### Key Capabilities
 
