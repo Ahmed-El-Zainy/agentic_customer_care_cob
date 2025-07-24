@@ -74,15 +74,15 @@ fi
 
 print_success "Environment variables OK"
 
-# Install/check dependencies
-print_status "Checking Python dependencies..."
-if ! python -c "import fastapi, gradio, google.generativeai" 2>/dev/null; then
-    print_warning "Installing missing dependencies..."
-    pip install -r requirements.txt || {
-        print_error "Failed to install dependencies"
-        exit 1
-    }
-fi
+# # Install/check dependencies
+# print_status "Checking Python dependencies..."
+# if ! python -c "import fastapi, gradio, google.generativeai" 2>/dev/null; then
+#     print_warning "Installing missing dependencies..."
+#     pip install -r requirements.txt || {
+#         print_error "Failed to install dependencies"
+#         exit 1
+#     }
+# fi
 print_success "Dependencies OK"
 
 # Initialize database
@@ -92,7 +92,7 @@ import sqlite3
 import os
 
 # Create database if it doesn't exist
-db_path = 'cob_system_2.db'
+db_path = '/Users/ahmedmostafa/Downloads/agentic_customer_care_cob/assets/data/cob_system_2.db'
 if not os.path.exists(db_path):
     conn = sqlite3.connect(db_path)
     conn.close()
