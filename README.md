@@ -5,7 +5,7 @@ Basic Architecure Digram for the seqenece of actions and workflow for the projec
 
 
 ## DEMO
-<video src='assets/demo_cob_company.mp4'>
+<video src='assets/demo_cob.mp4'>
 
 
 ### 🚀 **Quick Setup:**
