@@ -177,7 +177,7 @@ graph TB
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/cob-customer-support.git
+git clone https://github.com/Ahmed-El-Zainy/cob-customer-support
 cd cob-customer-support
 
 # Set up Python virtual environment
