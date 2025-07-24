@@ -14,12 +14,18 @@ import sys
 # fmt: off
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(SCRIPT_DIR))
-from logger.custom_logger import CustomLoggerTracker
 
-
-
-logger_tracker = CustomLoggerTracker()
-logger = logger_tracker.get_logger("main")
+# Try to import custom logger, fallback to standard logging
+try:
+    from logger.custom_logger import CustomLoggerTracker
+    logger_tracker = CustomLoggerTracker()
+    logger = logger_tracker.get_logger("main")
+    logger.info("Custom logger initialized")
+except ImportError:
+    import logging
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger("main")
+    logger.info("Using standard logger - custom logger not available")
 
 class IntentType(Enum):
     KNOWLEDGE_BASE_QUERY = "kb_query"
@@ -28,7 +34,6 @@ class IntentType(Enum):
     GREETING = "greeting"
     GOODBYE = "goodbye"
     CONFIRMATION = "confirmation"
-
 
 class ActionType(Enum):
     SCHEDULE_APPOINTMENT = "schedule_appointment"
@@ -53,6 +58,9 @@ class UserContext:
             "user": user_msg,
             "bot": bot_response
         })
+        # Keep only last 10 messages to avoid memory issues
+        if len(self.conversation_history) > 10:
+            self.conversation_history = self.conversation_history[-10:]
 
 class KnowledgeBase:
     """Enhanced knowledge base for COB Company with comprehensive information"""
@@ -61,47 +69,47 @@ class KnowledgeBase:
         self.knowledge_data = {
             "products_services": {
                 "software_solutions": {
-                    "description": "COB Company offers comprehensive enterprise software solutions including Customer Relationship Management (CRM), Enterprise Resource Planning (ERP), and advanced project management tools.",
-                    "features": ["Cloud-based deployment", "24/7 support", "Custom integrations", "Mobile apps", "Analytics dashboard"],
+                    "description": "COB Company offers comprehensive healthcare technology solutions including Medical Authorizations, Benefits Verification, Medical Auditing, and Billing & Denial Management.",
+                    "features": ["HIPAA compliant", "24/7 support", "Real-time processing", "API integrations", "Comprehensive reporting"],
                     "pricing": "Contact our sales team for customized pricing based on your organization's needs."
                 },
-                "consulting_services": {
-                    "description": "Our expert consultants provide IT consulting, digital transformation strategies, and business process optimization services.",
-                    "specialties": ["Digital transformation", "Cloud migration", "Process automation", "Data analytics", "Cybersecurity"],
-                    "engagement_models": ["Project-based", "Retainer", "Hourly consultation"]
+                "medical_authorizations": {
+                    "description": "Streamline your medical authorization process with our automated system that reduces processing time by 70%.",
+                    "benefits": ["Faster approvals", "Reduced denials", "Automated follow-ups", "Compliance tracking"],
+                    "turnaround": "Most authorizations processed within 24-48 hours"
                 },
-                "support_services": {
-                    "description": "Comprehensive support services including 24/7 technical support, training programs, and system maintenance.",
-                    "support_levels": ["Basic (Business hours)", "Premium (24/7)", "Enterprise (Dedicated team)"],
-                    "response_times": {"Critical": "1 hour", "High": "4 hours", "Medium": "24 hours", "Low": "48 hours"}
+                "benefits_verification": {
+                    "description": "Real-time insurance benefits verification to ensure accurate coverage information before patient services.",
+                    "features": ["Real-time verification", "Multi-payer support", "Eligibility checks", "Coverage details"],
+                    "accuracy": "99.8% verification accuracy rate"
                 }
             },
             "policies": {
                 "refund_policy": "Full refunds available within 30 days of purchase. Partial refunds may apply for annual subscriptions after 30 days. Contact our support team to initiate the refund process.",
-                "privacy_policy": "We protect customer data according to GDPR, CCPA, and industry-leading security standards. Your data is never shared with third parties without explicit consent.",
-                "service_agreement": "Our Service Level Agreement guarantees 99.9% uptime, with 24-hour response time for critical issues. Compensation provided for SLA breaches.",
+                "privacy_policy": "We protect customer data according to HIPAA, GDPR, and industry-leading security standards. Your data is never shared with third parties without explicit consent.",
+                "service_agreement": "Our Service Level Agreement guarantees 99.9% uptime, with 4-hour response time for critical issues. Compensation provided for SLA breaches.",
                 "cancellation_policy": "Services can be cancelled with 30-day notice. No cancellation fees for monthly subscriptions. Annual subscriptions subject to terms."
             },
             "company_info": {
-                "about": "COB Company is a leading technology solutions provider established in 2010, serving over 10,000 customers worldwide with innovative software and consulting services.",
+                "about": "COB Company is a leading healthcare technology solutions provider established in 2015, serving over 5,000+ healthcare providers with innovative medical billing and authorization services.",
                 "contact": {
                     "email": "support@cobcompany.com",
-                    "phone": "1-800-COB-HELP",
-                    "address": "123 Technology Boulevard, Innovation City, IC 12345",
+                    "phone": "(929) 229-7209",
+                    "address": "Healthcare Technology Center, Medical District",
                     "live_chat": "Available 24/7 on our website"
                 },
                 "hours": {
-                    "business_hours": "Monday-Friday 9:00 AM - 6:00 PM EST",
+                    "business_hours": "Monday-Friday 4:00 PM - 1:00 AM US EST",
                     "support_hours": "24/7 emergency support available",
-                    "sales_hours": "Monday-Friday 8:00 AM - 7:00 PM EST"
+                    "sales_hours": "Monday-Friday 9:00 AM - 6:00 PM EST"
                 },
-                "locations": ["San Francisco, CA", "New York, NY", "Austin, TX", "London, UK", "Toronto, Canada"]
+                "specialties": ["Medical Authorizations", "Benefits Verification", "Medical Auditing", "Billing & Denial Management"]
             },
             "appointments": {
                 "types": [
-                    {"name": "Product Demo", "duration": "30 minutes", "description": "Live demonstration of our software solutions"},
+                    {"name": "Product Demo", "duration": "30 minutes", "description": "Live demonstration of our healthcare solutions"},
                     {"name": "Technical Consultation", "duration": "45 minutes", "description": "Technical discussion about implementation and integration"},
-                    {"name": "Sales Meeting", "duration": "60 minutes", "description": "Detailed discussion about pricing and business requirements"},
+                    {"name": "Benefits Analysis", "duration": "60 minutes", "description": "Detailed analysis of how our solutions can benefit your practice"},
                     {"name": "Support Session", "duration": "30 minutes", "description": "Technical support and troubleshooting session"}
                 ],
                 "availability": "Monday-Friday 9:00 AM - 5:00 PM EST",
@@ -117,7 +125,7 @@ class KnowledgeBase:
             kb_context = json.dumps(self.knowledge_data, indent=2)
             
             prompt = f"""
-            Based on the following knowledge base about COB Company, provide a helpful and accurate answer to the user's question.
+            Based on the following knowledge base about COB Company (a healthcare technology solutions provider), provide a helpful and accurate answer to the user's question.
             
             Knowledge Base:
             {kb_context}
@@ -130,12 +138,13 @@ class KnowledgeBase:
             3. If the question is not covered in the knowledge base, say so clearly
             4. Be helpful and professional
             5. Include relevant contact information when appropriate
+            6. Focus on healthcare technology solutions, medical authorizations, benefits verification, etc.
             
             Answer:
             """
             
             # Use Gemini to generate intelligent response
-            model = genai.GenerativeModel('gemini-2.5-flash-lite-preview-06-17')
+            model = genai.GenerativeModel('gemini-2.0-flash-exp')
             response = model.generate_content(prompt)
             
             if response.text:
@@ -147,28 +156,43 @@ class KnowledgeBase:
                 
         except Exception as e:
             logger.error(f"Error in knowledge search: {e}")
-            return "I'm having trouble accessing that information right now. Please try again or contact our support team.", 0.3
+            return "I'm having trouble accessing that information right now. Please try again or contact our support team at (929) 229-7209.", 0.3
 
 class GeminiChatbot:
     """Main chatbot class using Gemini API for intelligent conversation"""
     
     def __init__(self, api_key: str):
         """Initialize chatbot with Gemini API"""
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-2.5-flash-lite-preview-06-17')
+        if not api_key:
+            raise ValueError("Gemini API key is required")
+            
+        try:
+            genai.configure(api_key=api_key)
+            self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            logger.info("Gemini API configured successfully")
+        except Exception as e:
+            logger.error(f"Failed to configure Gemini API: {e}")
+            raise
+            
         self.knowledge_base = KnowledgeBase()
         self.user_sessions = {}
         
         # System prompt for the chatbot
         self.system_prompt = """
-        You are a professional customer service AI assistant for COB Company, a technology solutions provider.
+        You are a professional healthcare customer service AI assistant for COB Company, a healthcare technology solutions provider.
         
         Your responsibilities:
-        1. Answer questions about COB Company's products, services, and policies
+        1. Answer questions about COB Company's healthcare solutions, services, and policies
         2. Help schedule appointments by collecting necessary information
         3. Handle customer requests professionally and efficiently
         4. Escalate to human agents when appropriate
         5. Maintain conversation context and provide personalized assistance
+        
+        COB Company specializes in:
+        - Medical Authorizations (streamlining insurance approvals)
+        - Benefits Verification (real-time coverage confirmation)
+        - Medical Auditing (compliance and optimization)
+        - Billing & Denial Management (revenue cycle support)
         
         Guidelines:
         - Be professional, helpful, and friendly
@@ -180,16 +204,13 @@ class GeminiChatbot:
         Available appointment types:
         - Product Demo (30 min)
         - Technical Consultation (45 min)
-        - Sales Meeting (60 min)
+        - Benefits Analysis (60 min)
         - Support Session (30 min)
         
-        For appointment scheduling, collect:
-        - Full name
-        - Email address
-        - Phone number
-        - Preferred appointment type
-        - Preferred date and time
-        - Any specific requirements or questions
+        Contact Information:
+        - Phone: (929) 229-7209
+        - Email: support@cobcompany.com
+        - Hours: Mon-Fri 4PM-1AM US EST
         """
     
     def get_or_create_session(self, session_id: str) -> UserContext:
@@ -213,7 +234,7 @@ class GeminiChatbot:
             
             Message: "{message}"
             
-            Consider the conversation context: Current intent: {context.current_intent}, Escalation triggers: {context.escalation_triggers}
+            Context: Current intent: {context.current_intent}, Escalation triggers: {context.escalation_triggers}
             
             Respond with just the intent name (e.g., "greeting", "kb_query", etc.)
             """
@@ -224,7 +245,7 @@ class GeminiChatbot:
             # Map response to IntentType
             intent_mapping = {
                 "greeting": IntentType.GREETING,
-                "goodbye": IntentType.GOODBYE,
+                "goodbye": IntentType.GOODBYE,  
                 "kb_query": IntentType.KNOWLEDGE_BASE_QUERY,
                 "action_request": IntentType.ACTION_REQUEST,
                 "human_escalation": IntentType.HUMAN_ESCALATION,
@@ -248,7 +269,7 @@ class GeminiChatbot:
             3. Phone number
             4. Date preferences (specific dates or relative dates like "next Tuesday")
             5. Time preferences (specific times or general times like "afternoon")
-            6. Service type (Product Demo, Technical Consultation, Sales Meeting, Support Session)
+            6. Service type (Product Demo, Technical Consultation, Benefits Analysis, Support Session)
             7. Any specific requirements or questions
             
             Message: "{message}"
@@ -284,7 +305,7 @@ class GeminiChatbot:
             if missing_fields:
                 # Ask for missing information
                 prompt = f"""
-                You are helping a customer schedule an appointment. They have provided some information but we need more details.
+                You are helping a customer schedule an appointment for COB Company healthcare solutions. They have provided some information but we need more details.
                 
                 Already collected:
                 {json.dumps(context.collected_info, indent=2)}
@@ -292,10 +313,12 @@ class GeminiChatbot:
                 Still need: {', '.join(missing_fields)}
                 
                 Available appointment types:
-                - Product Demo (30 min): Live demonstration of our software solutions
+                - Product Demo (30 min): Live demonstration of our healthcare solutions
                 - Technical Consultation (45 min): Technical discussion about implementation
-                - Sales Meeting (60 min): Detailed discussion about pricing and requirements
+                - Benefits Analysis (60 min): Detailed analysis of how our solutions benefit your practice
                 - Support Session (30 min): Technical support and troubleshooting
+                
+                Business hours: Monday-Friday 9:00 AM - 5:00 PM EST
                 
                 Write a friendly message asking for the missing information. Be specific about what you need and provide options when helpful.
                 """
@@ -309,7 +332,7 @@ class GeminiChatbot:
                 appointment_id = str(uuid.uuid4())[:8].upper()
                 
                 confirmation_prompt = f"""
-                Generate a professional appointment confirmation message with the following details:
+                Generate a professional appointment confirmation message for COB Company with the following details:
                 
                 Customer Information:
                 - Name: {context.collected_info.get('name')}
@@ -328,7 +351,7 @@ class GeminiChatbot:
                 1. Professional confirmation of the appointment
                 2. All the details in a clear format
                 3. Next steps (confirmation email, calendar invite)
-                4. Contact information for changes
+                4. Contact information for changes: (929) 229-7209
                 5. Ask for final confirmation
                 """
                 
@@ -337,7 +360,7 @@ class GeminiChatbot:
                 
         except Exception as e:
             logger.error(f"Error in appointment scheduling: {e}")
-            return "I'm having trouble processing your appointment request. Let me connect you with a human agent who can help you schedule your appointment."
+            return "I'm having trouble processing your appointment request. Let me connect you with a human agent who can help you schedule your appointment. Please call us at (929) 229-7209."
     
     def process_message(self, message: str, session_id: str = "default") -> str:
         """Process incoming message and generate intelligent response"""
@@ -377,20 +400,21 @@ class GeminiChatbot:
             
         except Exception as e:
             logger.error(f"Error processing message: {e}")
-            return "I'm experiencing technical difficulties. Please try again or contact our support team at support@cobcompany.com"
+            return "I'm experiencing technical difficulties. Please try again or contact our support team at (929) 229-7209 or support@cobcompany.com"
     
     def handle_greeting(self) -> str:
         """Handle greeting with dynamic response"""
         try:
             prompt = """
-            Generate a warm, professional greeting for COB Company's customer service chatbot.
+            Generate a warm, professional greeting for COB Company's healthcare customer service chatbot.
             
             Include:
-            1. Friendly welcome
-            2. Brief mention of what you can help with
-            3. Invitation to ask questions
+            1. Friendly welcome to COB Company
+            2. Brief mention that you help with healthcare technology solutions
+            3. List key services: Medical Authorizations, Benefits Verification, Medical Auditing, Billing Management
+            4. Invitation to ask questions
             
-            Keep it concise but welcoming.
+            Keep it concise but welcoming and professional.
             """
             
             response = self.model.generate_content(prompt)
@@ -398,18 +422,19 @@ class GeminiChatbot:
             
         except Exception as e:
             logger.error(f"Error in greeting: {e}")
-            return "Hello! Welcome to COB Company Customer Support. How can I help you today?"
+            return "Hello! Welcome to COB Company Customer Support. I can help you with our healthcare technology solutions including Medical Authorizations, Benefits Verification, Medical Auditing, and Billing Management. How can I assist you today?"
     
     def handle_goodbye(self) -> str:
         """Handle goodbye with helpful closing"""
         try:
             prompt = """
-            Generate a professional goodbye message for COB Company's customer service.
+            Generate a professional goodbye message for COB Company's healthcare customer service.
             
             Include:
             1. Thank you message
-            2. Contact information for future needs
-            3. Warm closing
+            2. Contact information: (929) 229-7209 and support@cobcompany.com
+            3. Hours: Mon-Fri 4PM-1AM US EST
+            4. Warm closing
             
             Keep it helpful and professional.
             """
@@ -419,7 +444,7 @@ class GeminiChatbot:
             
         except Exception as e:
             logger.error(f"Error in goodbye: {e}")
-            return "Thank you for contacting COB Company! If you need further assistance, please don't hesitate to reach out. Have a great day!"
+            return "Thank you for contacting COB Company! If you need further assistance, please call us at (929) 229-7209 or email support@cobcompany.com. Our hours are Monday-Friday 4PM-1AM US EST. Have a great day!"
     
     def handle_knowledge_query(self, message: str, context: UserContext) -> str:
         """Handle knowledge base queries"""
@@ -435,26 +460,27 @@ class GeminiChatbot:
     def handle_action_request(self, message: str, context: UserContext) -> str:
         """Handle action requests"""
         # Check if it's appointment related
-        if any(word in message.lower() for word in ['appointment', 'schedule', 'book', 'meeting']):
+        if any(word in message.lower() for word in ['appointment', 'schedule', 'book', 'meeting', 'demo', 'consultation']):
             context.current_action = ActionType.SCHEDULE_APPOINTMENT
             return self.handle_appointment_scheduling(message, context)
         
         # Handle other actions with Gemini
         try:
             prompt = f"""
-            The user is requesting an action. Based on their message: "{message}"
+            The user is requesting an action for COB Company healthcare services. Based on their message: "{message}"
             
             Available actions:
-            1. Schedule appointment
+            1. Schedule appointment (Product Demo, Technical Consultation, Benefits Analysis, Support Session)
             2. Update profile/account information
             3. Cancel/reschedule appointment
-            4. General account management
+            4. Request information about services
             
             Provide a helpful response that:
             1. Acknowledges their request
             2. Explains what you can help with
             3. Asks for any additional information needed
             4. Provides clear next steps
+            5. Include contact info if needed: (929) 229-7209
             """
             
             response = self.model.generate_content(prompt)
@@ -462,19 +488,20 @@ class GeminiChatbot:
             
         except Exception as e:
             logger.error(f"Error in action request: {e}")
-            return "I can help you with scheduling appointments, updating your profile, or other account-related tasks. What would you like to do?"
+            return "I can help you with scheduling appointments, updating your information, or other account-related tasks. What would you like to do? You can also call us directly at (929) 229-7209."
     
     def handle_human_escalation(self, context: UserContext) -> str:
         """Handle escalation to human agent"""
         try:
             prompt = """
-            Generate a professional escalation message for transferring to a human agent.
+            Generate a professional escalation message for COB Company transferring to a human agent.
             
             Include:
             1. Understanding acknowledgment
             2. Transfer explanation
-            3. Contact information alternatives
-            4. What to expect next
+            3. Contact information: (929) 229-7209 and support@cobcompany.com
+            4. Hours: Mon-Fri 4PM-1AM US EST
+            5. What to expect next
             
             Be reassuring and helpful.
             """
@@ -484,33 +511,34 @@ class GeminiChatbot:
             
         except Exception as e:
             logger.error(f"Error in escalation: {e}")
-            return "I'll connect you with one of our human agents who can provide more specialized assistance. Please hold while I transfer you, or you can reach us directly at support@cobcompany.com or 1-800-COB-HELP."
+            return "I'll connect you with one of our human agents who can provide more specialized assistance. Please call us at (929) 229-7209 or email support@cobcompany.com. Our hours are Monday-Friday 4PM-1AM US EST."
     
     def handle_confirmation(self, message: str, context: UserContext) -> str:
         """Handle confirmation responses"""
         if context.awaiting_confirmation and context.current_action == ActionType.SCHEDULE_APPOINTMENT:
-            if any(word in message.lower() for word in ['yes', 'correct', 'confirm', 'good', 'right']):
+            if any(word in message.lower() for word in ['yes', 'correct', 'confirm', 'good', 'right', 'ok']):
                 context.awaiting_confirmation = False
                 return """
                 Perfect! ✅ Your appointment has been successfully scheduled.
                 
                 📧 You'll receive a confirmation email shortly with:
                 - Calendar invite
-                - Meeting details
-                - Preparation instructions
+                - Meeting details and preparation instructions
+                - Direct contact information
                 
                 📞 If you need to make any changes, please contact us at:
+                - Phone: (929) 229-7209
                 - Email: support@cobcompany.com
-                - Phone: 1-800-COB-HELP
+                - Hours: Mon-Fri 4PM-1AM US EST
                 
-                Thank you for choosing COB Company! We look forward to meeting with you.
+                Thank you for choosing COB Company! We look forward to helping you with your healthcare technology needs.
                 """
             else:
                 context.awaiting_confirmation = False
                 context.collected_info = {}
-                return "No problem! Let's start over with your appointment scheduling. What type of appointment would you like to schedule?"
+                return "No problem! Let's start over with your appointment scheduling. What type of appointment would you like to schedule? We offer Product Demos, Technical Consultations, Benefits Analysis, and Support Sessions."
         
-        return "Thank you for the confirmation. Is there anything else I can help you with today?"
+        return "Thank you for the confirmation. Is there anything else I can help you with regarding our healthcare technology solutions?"
     
     def generate_fallback_response(self, message: str) -> str:
         """Generate fallback response using Gemini"""
@@ -518,11 +546,12 @@ class GeminiChatbot:
             prompt = f"""
             A customer said: "{message}"
             
-            As a COB Company customer service AI, provide a helpful response that:
+            As a COB Company healthcare customer service AI, provide a helpful response that:
             1. Acknowledges their message
-            2. Offers assistance
-            3. Suggests what you can help with
+            2. Offers assistance with healthcare technology solutions
+            3. Suggests what you can help with (Medical Authorizations, Benefits Verification, etc.)
             4. Asks clarifying questions if needed
+            5. Provides contact info if appropriate: (929) 229-7209
             
             Be professional and helpful.
             """
@@ -532,16 +561,18 @@ class GeminiChatbot:
             
         except Exception as e:
             logger.error(f"Error in fallback: {e}")
-            return "I want to make sure I understand how to help you. Could you please provide more details about what you're looking for?"
+            return "I want to make sure I understand how to help you with our healthcare technology solutions. Could you please provide more details about what you're looking for? You can also call us directly at (929) 229-7209."
 
 def create_gradio_interface(api_key: str):
     """Create Gradio interface for the chatbot"""
     
-    # Initialize chatbot
-    chatbot = GeminiChatbot(api_key)
-    
-    # Session management
-    session_store = {}
+    try:
+        # Initialize chatbot
+        chatbot = GeminiChatbot(api_key)
+        logger.info("Chatbot initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize chatbot: {e}")
+        raise
     
     def chat_function(message, history, session_id):
         """Main chat function for Gradio interface"""
@@ -560,7 +591,7 @@ def create_gradio_interface(api_key: str):
             
         except Exception as e:
             logger.error(f"Error in chat function: {e}")
-            error_response = "I'm experiencing technical difficulties. Please try again or contact support@cobcompany.com"
+            error_response = "I'm experiencing technical difficulties. Please try again or contact support at (929) 229-7209"
             history.append((message, error_response))
             return history, "", session_id
     
@@ -569,64 +600,86 @@ def create_gradio_interface(api_key: str):
         return [], ""
     
     # Create Gradio interface
-    with gr.Blocks(title="COB Company Customer Support", theme=gr.themes.Soft()) as demo:
+    with gr.Blocks(title="COB Company Healthcare Customer Support", theme=gr.themes.Soft()) as demo:
         gr.Markdown("""
-        # 🏢 COB Company Customer Support Chatbot
+        # 🏥 COB Company Healthcare Customer Support
         
-        Welcome to COB Company's AI-powered customer support! I can help you with:
+        Welcome to COB Company's AI-powered customer support for healthcare technology solutions!
         
-        - 📋 **Product & Service Information** - Learn about our solutions
-        - 📅 **Appointment Scheduling** - Book demos, consultations, and meetings  
-        - 🔧 **Technical Support** - Get help with our products
-        - 📞 **Contact Information** - Find the right department
-        - 👥 **Human Agent Transfer** - Connect with our support team
+        ## 🩺 Our Services:
+        - **📋 Medical Authorizations** - Streamline insurance approvals
+        - **🔍 Benefits Verification** - Real-time coverage confirmation  
+        - **📊 Medical Auditing** - Compliance and optimization
+        - **💼 Billing & Denial Management** - Revenue cycle support
         
-        Just type your question or request below to get started!
+        ## 💬 I can help you with:
+        - 📅 **Appointment Scheduling** - Book demos and consultations
+        - 📞 **Contact Information** - Get in touch with our team
+        - 🔧 **Technical Support** - Help with our solutions
+        - 👥 **Human Agent Transfer** - Connect with specialists
+        
+        **📞 Direct Contact:** (929) 229-7209 | **📧 Email:** support@cobcompany.com  
+        **🕒 Hours:** Monday-Friday 4PM-1AM US EST
         """)
         
         with gr.Row():
             with gr.Column(scale=4):
                 chatbot_interface = gr.Chatbot(
                     height=500,
-                    label="Customer Support Chat",
-                    avatar_images=["👤", "🤖"]
+                    label="Healthcare Customer Support Chat",
+                    avatar_images=["👤", "🏥"]
                 )
                 
                 with gr.Row():
                     msg = gr.Textbox(
-                        placeholder="Type your message here...",
+                        placeholder="Ask about our healthcare solutions, schedule an appointment, or get support...",
                         label="Message",
                         lines=2,
                         max_lines=5
                     )
                     
                 with gr.Row():
-                    send_btn = gr.Button("Send 📤", variant="primary")
+                    send_btn = gr.Button("Send Message 📤", variant="primary")
                     clear_btn = gr.Button("Clear Chat 🗑️", variant="secondary")
             
             with gr.Column(scale=1):
-                gr.Markdown("### Quick Actions")
+                gr.Markdown("### 🚀 Quick Actions")
                 
                 with gr.Group():
-                    gr.Markdown("**Common Requests:**")
+                    gr.Markdown("**📅 Appointments:**")
                     demo_btn = gr.Button("📋 Product Demo", size="sm")
                     consultation_btn = gr.Button("🔧 Technical Consultation", size="sm")
+                    benefits_btn = gr.Button("📊 Benefits Analysis", size="sm")
+                    
+                    gr.Markdown("**ℹ️ Information:**")
                     hours_btn = gr.Button("🕐 Business Hours", size="sm")
                     contact_btn = gr.Button("📞 Contact Info", size="sm")
-                    human_btn = gr.Button("👥 Human Agent", size="sm")
+                    services_btn = gr.Button("🏥 Our Services", size="sm")
+                    
+                    gr.Markdown("**👥 Support:**")
+                    human_btn = gr.Button("👨‍⚕️ Human Agent", size="sm")
                 
-                gr.Markdown("### Session Info")
+                gr.Markdown("### 📊 Session Info")
                 session_id = gr.Textbox(
                     label="Session ID",
                     interactive=False,
                     value=""
                 )
                 
-                gr.Markdown("### 📞 Direct Contact")
+                gr.Markdown("### 📞 Contact Info")
                 gr.Markdown("""
-                **Phone:** (929)-229-7209
+                **Phone:** (929) 229-7209  
                 **Email:** support@cobcompany.com  
-                **Hours:** Mon-Fri 4PM-1AM US
+                **Hours:** Mon-Fri 4PM-1AM US EST  
+                **Emergency:** 24/7 Support Available
+                """)
+                
+                gr.Markdown("### 🏥 Specialties")
+                gr.Markdown("""
+                ✅ Medical Authorizations  
+                🔍 Benefits Verification  
+                📊 Medical Auditing  
+                💼 Billing & Denial Management
                 """)
         
         # Event handlers
@@ -667,6 +720,12 @@ def create_gradio_interface(api_key: str):
             outputs=[chatbot_interface, msg, session_id]
         )
         
+        benefits_btn.click(
+            lambda h, s: quick_action("Tell me about benefits analysis", h, s),
+            inputs=[chatbot_interface, session_id],
+            outputs=[chatbot_interface, msg, session_id]
+        )
+        
         hours_btn.click(
             lambda h, s: quick_action("What are your business hours?", h, s),
             inputs=[chatbot_interface, session_id],
@@ -675,6 +734,12 @@ def create_gradio_interface(api_key: str):
         
         contact_btn.click(
             lambda h, s: quick_action("How can I contact you?", h, s),
+            inputs=[chatbot_interface, session_id],
+            outputs=[chatbot_interface, msg, session_id]
+        )
+        
+        services_btn.click(
+            lambda h, s: quick_action("Tell me about your healthcare services", h, s),
             inputs=[chatbot_interface, session_id],
             outputs=[chatbot_interface, msg, session_id]
         )
@@ -692,31 +757,44 @@ if __name__ == "__main__":
     api_key = os.getenv("GEMINI_API_KEY")
     
     if not api_key:
+        print("🔑 Gemini API Key Required")
+        print("=" * 40)
         print("Please set your Gemini API key:")
-        print("1. Set environment variable: GEMINI_API_KEY=your_api_key_here")
+        print("1. Set environment variable: export GEMINI_API_KEY=your_api_key_here")
         print("2. Or enter it now:")
         api_key = input("Enter your Gemini API key: ").strip()
     
     if not api_key:
-        print("Error: Gemini API key is required!")
+        print("❌ Error: Gemini API key is required!")
+        print("Get your API key from: https://makersuite.google.com/app/apikey")
         exit(1)
     
     try:
         # Create and launch Gradio interface
         demo = create_gradio_interface(api_key)
         
-        print("🚀 Starting COB Company Customer Support Chatbot...")
+        print("🚀 Starting COB Company Healthcare Customer Support Chatbot...")
+        print("=" * 60)
+        print("🏥 Healthcare Technology Solutions Support")
         print("📱 Access the chatbot at: http://localhost:7860")
+        print("📞 Direct contact: (929) 229-7209")
+        print("📧 Email: support@cobcompany.com")
         print("🛑 Press Ctrl+C to stop the server")
+        print("=" * 60)
         
         # Launch with public sharing option
         demo.launch(
             server_name="0.0.0.0",
             server_port=7860,
             share=False,  # Set to True for public sharing
-            debug=False
+            debug=False,
+            show_error=True
         )
         
     except Exception as e:
-        print(f"Error starting the application: {e}")
-        print("Please check your API key and internet connection.")
+        print(f"❌ Error starting the application: {e}")
+        print("Please check:")
+        print("1. Your Gemini API key is valid")
+        print("2. You have internet connection")
+        print("3. All dependencies are installed: pip install -r requirements.txt")
+        logger.error(f"Application startup failed: {e}")
